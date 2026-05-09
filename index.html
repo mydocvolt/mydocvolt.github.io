@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocVault — Document Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.15);
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --text: #f0f0f8;
+    --muted: #888899;
+    --dim: #55556a;
+    --glow: rgba(108,99,255,0.18);
+    --trans: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  [data-theme="light"] {
+    --bg: #f4f4f9;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-hover: rgba(0,0,0,0.18);
+    --accent: #5a52e8;
+    --accent2: #00a887;
+    --accent3: #e05555;
+    --text: #111118;
+    --muted: #555566;
+    --dim: #aaaabc;
+    --glow: rgba(90,82,232,0.12);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.4s, color 0.4s;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    transition: opacity 0.6s, visibility 0.6s;
+  }
+  #login-screen.hidden { opacity: 0; visibility: hidden; }
+
+  .login-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-box::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: -60px;
+    width: 200px; height: 200px;
+    background: var(--accent);
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  .login-box::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 180px; height: 180px;
+    background: var(--accent2);
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .login-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .login-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .login-field { margin-bottom: 1.2rem; }
+  .login-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+  .login-field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: var(--trans);
+  }
+  .login-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+  .login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: var(--trans);
+    letter-spacing: 0.03em;
+  }
+  .login-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .login-btn:active { transform: translateY(0); }
+  .login-error {
+    color: var(--accent3);
+    font-size: 0.82rem;
+    margin-top: 0.8rem;
+    text-align: center;
+    min-height: 1.2em;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  #main { position: relative; z-index: 1; }
+
+  /* ── TOPBAR ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.4s;
+  }
+  [data-theme="light"] header {
+    background: rgba(244,244,249,0.88);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .header-actions { display: flex; align-items: center; gap: 1rem; }
+  .theme-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    transition: var(--trans);
+    color: var(--text);
+  }
+  .theme-btn:hover { border-color: var(--accent); background: var(--glow); }
+  .logout-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: var(--trans);
+  }
+  .logout-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+
+  /* ── HERO / SLIDER ── */
+  .hero {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    margin-bottom: 4rem;
+  }
+  .slides-container {
+    display: flex;
+    height: 100%;
+    transition: transform 0.7s cubic-bezier(0.77,0,0.18,1);
+  }
+  .slide {
+    min-width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+  }
+  .slide-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .slide:nth-child(1) .slide-bg { background: linear-gradient(135deg,#1a0a2e 0%,#0a0a1a 50%,#0a1a1a 100%); }
+  .slide:nth-child(2) .slide-bg { background: linear-gradient(135deg,#0a1a1a 0%,#0a0a1a 50%,#1a0a1a 100%); }
+  .slide:nth-child(3) .slide-bg { background: linear-gradient(135deg,#1a1a0a 0%,#0a1a0a 50%,#0a0a1a 100%); }
+  [data-theme="light"] .slide:nth-child(1) .slide-bg { background: linear-gradient(135deg,#e8e4ff,#f4f4ff,#e4f4ff); }
+  [data-theme="light"] .slide:nth-child(2) .slide-bg { background: linear-gradient(135deg,#e4f4ff,#f4f4ff,#ffe4f4); }
+  [data-theme="light"] .slide:nth-child(3) .slide-bg { background: linear-gradient(135deg,#f4ffe4,#e4f4e4,#e4f4ff); }
+  .slide-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .slide-content { position: relative; z-index: 1; }
+  .slide-badge {
+    display: inline-block;
+    background: var(--glow);
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: 100px;
+    padding: 0.3rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+  .slide-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 1rem;
+  }
+  .slide-desc { color: var(--muted); font-size: 1rem; max-width: 500px; line-height: 1.65; }
+  .slide-indicators {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    cursor: pointer;
+    transition: var(--trans);
+  }
+  .dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+  .slide-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 1.1rem;
+    transition: var(--trans);
+    backdrop-filter: blur(8px);
+  }
+  [data-theme="light"] .slide-arrow { background: rgba(255,255,255,0.6); }
+  .slide-arrow:hover { border-color: var(--accent); background: var(--glow); }
+  .slide-arrow.prev { left: 1.5rem; }
+  .slide-arrow.next { right: 1.5rem; }
+
+  /* ── MAIN CONTENT ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.6rem;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ── CARDS GRID ── */
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+    margin-bottom: 5rem;
+  }
+  .doc-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.6rem;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    transition: var(--trans);
+    animation: fadeUp 0.5s ease both;
+  }
+  .doc-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    opacity: 0;
+    transition: opacity 0.35s;
+  }
+  .doc-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .doc-card:hover::before { opacity: 1; }
+  .card-icon-wrap {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    transition: var(--trans);
+  }
+  .doc-card:hover .card-icon-wrap { transform: scale(1.08) rotate(-3deg); }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+  }
+  .card-desc { color: var(--muted); font-size: 0.82rem; line-height: 1.6; flex: 1; }
+  .card-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.25rem 0.7rem;
+    border-radius: 100px;
+    width: fit-content;
+  }
+  .card-arrow {
+    position: absolute;
+    top: 1.4rem;
+    right: 1.4rem;
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    color: var(--dim);
+    transition: var(--trans);
+  }
+  .doc-card:hover .card-arrow {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: rotate(45deg);
+  }
+
+  /* card color themes */
+  .c1 .card-icon-wrap { background: rgba(108,99,255,0.12); }
+  .c1 .card-tag { background: rgba(108,99,255,0.12); color: #9b96ff; }
+  .c1 .doc-card::before { background: linear-gradient(135deg, rgba(108,99,255,0.04), transparent); }
+  .c2 .card-icon-wrap { background: rgba(0,212,170,0.12); }
+  .c2 .card-tag { background: rgba(0,212,170,0.12); color: #00d4aa; }
+  .c2 .doc-card::before { background: linear-gradient(135deg, rgba(0,212,170,0.04), transparent); }
+  .c3 .card-icon-wrap { background: rgba(255,107,107,0.12); }
+  .c3 .card-tag { background: rgba(255,107,107,0.12); color: #ff8f8f; }
+  .c3 .doc-card::before { background: linear-gradient(135deg, rgba(255,107,107,0.04), transparent); }
+  .c4 .card-icon-wrap { background: rgba(255,183,77,0.12); }
+  .c4 .card-tag { background: rgba(255,183,77,0.12); color: #ffb74d; }
+  .c4 .doc-card::before { background: linear-gradient(135deg, rgba(255,183,77,0.04), transparent); }
+  .c5 .card-icon-wrap { background: rgba(100,181,246,0.12); }
+  .c5 .card-tag { background: rgba(100,181,246,0.12); color: #64b5f6; }
+  .c5 .doc-card::before { background: linear-gradient(135deg, rgba(100,181,246,0.04), transparent); }
+
+  /* soon card */
+  .doc-card.soon {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+  .soon-badge {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: var(--dim);
+    color: var(--bg);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    color: var(--dim);
+    font-size: 0.8rem;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .doc-card:nth-child(1) { animation-delay: 0.05s; }
+  .doc-card:nth-child(2) { animation-delay: 0.1s; }
+  .doc-card:nth-child(3) { animation-delay: 0.15s; }
+  .doc-card:nth-child(4) { animation-delay: 0.2s; }
+  .doc-card:nth-child(5) { animation-delay: 0.25s; }
+  .doc-card:nth-child(6) { animation-delay: 0.3s; }
+  .doc-card:nth-child(7) { animation-delay: 0.35s; }
+  .doc-card:nth-child(8) { animation-delay: 0.4s; }
+  .doc-card:nth-child(9) { animation-delay: 0.45s; }
+
+  @media(max-width:600px) {
+    .hero { height: 320px; }
+    .slide-title { font-size: 1.8rem; }
+    .slide-arrow { display: none; }
+    header { padding: 0 1rem; }
+    .container { padding: 0 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">DocVault</div>
+    <div class="login-sub">Secure Document Portal — Enter credentials to continue</div>
+    <div class="login-field">
+      <label>User ID</label>
+      <input type="text" id="uid" placeholder="Enter your ID" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="pw" placeholder="Enter your password" autocomplete="current-password" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Access Portal →</button>
+    <div class="login-error" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main" style="display:none;">
+
+  <header>
+    <div class="logo">DocVault</div>
+    <div class="header-actions">
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-icon">🌙</button>
+      <button class="logout-btn" onclick="doLogout()">Log out</button>
+    </div>
+  </header>
+
+  <!-- HERO SLIDER -->
+  <div class="hero">
+    <div class="slides-container" id="slides">
+      <!-- Slide 1 -->
+      <div class="slide">
+        <div class="slide-bg"></div>
+        <div class="slide-orb" style="width:350px;height:350px;background:#6c63ff;top:-100px;left:-80px;opacity:0.18;"></div>
+        <div class="slide-orb" style="width:280px;height:280px;background:#00d4aa;bottom:-80px;right:-60px;opacity:0.14;"></div>
+        <div class="slide-content">
+          <div class="slide-badge">Compliance & Quality</div>
+          <div class="slide-title">All Your Documents.<br>One Secure Portal.</div>
+          <div class="slide-desc">Access compliance records, audit files, and regulatory documents instantly from anywhere.</div>
+        </div>
+      </div>
+      <!-- Slide 2 -->
+      <div class="slide">
+        <div class="slide-bg"></div>
+        <div class="slide-orb" style="width:300px;height:300px;background:#ff6b6b;top:-80px;right:-60px;opacity:0.15;"></div>
+        <div class="slide-orb" style="width:250px;height:250px;background:#6c63ff;bottom:-60px;left:-40px;opacity:0.12;"></div>
+        <div class="slide-content">
+          <div class="slide-badge">Sustainability</div>
+          <div class="slide-title">Environment &amp;<br>Sustainability Data</div>
+          <div class="slide-desc">Higg FEM assessments and EKPI environmental performance indicators, always within reach.</div>
+        </div>
+      </div>
+      <!-- Slide 3 -->
+      <div class="slide">
+        <div class="slide-bg"></div>
+        <div class="slide-orb" style="width:320px;height:320px;background:#00d4aa;top:-90px;left:30%;opacity:0.14;"></div>
+        <div class="slide-orb" style="width:240px;height:240px;background:#ffb74d;bottom:-60px;left:-50px;opacity:0.12;"></div>
+        <div class="slide-content">
+          <div class="slide-badge">Safety & Legal</div>
+          <div class="slide-title">Safety Standards &amp;<br>Legal Framework</div>
+          <div class="slide-desc">Nirapon safety protocols and laws &amp; regulations, organized and accessible at a click.</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="slide-arrow prev" onclick="moveSlide(-1)">&#8592;</button>
+    <button class="slide-arrow next" onclick="moveSlide(1)">&#8594;</button>
+    <div class="slide-indicators" id="dots">
+      <div class="dot active" onclick="goSlide(0)"></div>
+      <div class="dot" onclick="goSlide(1)"></div>
+      <div class="dot" onclick="goSlide(2)"></div>
+    </div>
+  </div>
+
+  <!-- DOCS GRID -->
+  <div class="container">
+    <div class="section-label">Quick Access</div>
+    <div class="section-title">Document Library</div>
+    <div class="docs-grid">
+
+      <!-- Card 1: ISO 9001 -->
+      <div class="c1">
+        <a class="doc-card" href="https://drive.google.com/drive/folders/1cnJ_jng-m6eSlrKR9dPDScL8oHaQMiFy?usp=sharing" target="_blank">
+          <div class="card-arrow">↗</div>
+          <div class="card-icon-wrap">📋</div>
+          <div>
+            <div class="card-title">ISO 9001:2015</div>
+            <div class="card-desc">Quality management system documentation, audit records, and certification files.</div>
+          </div>
+          <div class="card-tag">⚙ Quality System</div>
+        </a>
+      </div>
+
+      <!-- Card 2: Higg FEM -->
+      <div class="c2">
+        <a class="doc-card" href="https://drive.google.com/drive/folders/1xET2ryzQ_z-T81ZBYLTvMjS8GcVOs5GT?usp=sharing" target="_blank">
+          <div class="card-arrow">↗</div>
+          <div class="card-icon-wrap">🌿</div>
+          <div>
+            <div class="card-title">Higg FEM</div>
+            <div class="card-desc">Facility Environmental Module assessments for sustainable manufacturing benchmarks.</div>
+          </div>
+          <div class="card-tag">🌱 Sustainability</div>
+        </a>
+      </div>
+
+      <!-- Card 3: EKPI -->
+      <div class="c3">
+        <a class="doc-card" href="https://drive.google.com/drive/folders/1gCH1fHUaOboqRm3oKC1A8e22Z3d05cue?usp=sharing" target="_blank">
+          <div class="card-arrow">↗</div>
+          <div class="card-icon-wrap">📊</div>
+          <div>
+            <div class="card-title">EKPI Data</div>
+            <div class="card-desc">Environmental key performance indicators, monthly and annual reporting datasets.</div>
+          </div>
+          <div class="card-tag">📈 Performance</div>
+        </a>
+      </div>
+
+      <!-- Card 4: Nirapon -->
+      <div class="c4">
+        <a class="doc-card" href="https://drive.google.com/drive/folders/1-9wrBItQzRp87QfDuseHxjRIvzkSeZ2v?usp=sharing" target="_blank">
+          <div class="card-arrow">↗</div>
+          <div class="card-icon-wrap">🛡️</div>
+          <div>
+            <div class="card-title">Nirapon</div>
+            <div class="card-desc">Worker safety standards, structural inspection records, and compliance reports.</div>
+          </div>
+          <div class="card-tag">🔒 Safety</div>
+        </a>
+      </div>
+
+      <!-- Card 5: Laws & Regulation -->
+      <div class="c5">
+        <a class="doc-card" href="https://drive.google.com/drive/folders/1C6rBjGq-RO3FFroQQM9MiV1o_DUB1SlS?usp=sharing" target="_blank">
+          <div class="card-arrow">↗</div>
+          <div class="card-icon-wrap">⚖️</div>
+          <div>
+            <div class="card-title">Laws &amp; Regulation</div>
+            <div class="card-desc">Labour laws, environmental regulations, and statutory compliance guidelines.</div>
+          </div>
+          <div class="card-tag">📜 Legal</div>
+        </a>
+      </div>
+
+      <!-- Cards 6–9: Coming Soon -->
+      <div class="c1">
+        <div class="doc-card soon">
+          <div class="soon-badge">Coming Soon</div>
+          <div class="card-icon-wrap">📁</div>
+          <div>
+            <div class="card-title">Folder Slot 6</div>
+            <div class="card-desc">This slot is reserved for your next document folder. Add a link to activate.</div>
+          </div>
+          <div class="card-tag">— Pending</div>
+        </div>
+      </div>
+      <div class="c2">
+        <div class="doc-card soon">
+          <div class="soon-badge">Coming Soon</div>
+          <div class="card-icon-wrap">📁</div>
+          <div>
+            <div class="card-title">Folder Slot 7</div>
+            <div class="card-desc">This slot is reserved for your next document folder. Add a link to activate.</div>
+          </div>
+          <div class="card-tag">— Pending</div>
+        </div>
+      </div>
+      <div class="c3">
+        <div class="doc-card soon">
+          <div class="soon-badge">Coming Soon</div>
+          <div class="card-icon-wrap">📁</div>
+          <div>
+            <div class="card-title">Folder Slot 8</div>
+            <div class="card-desc">This slot is reserved for your next document folder. Add a link to activate.</div>
+          </div>
+          <div class="card-tag">— Pending</div>
+        </div>
+      </div>
+      <div class="c4">
+        <div class="doc-card soon">
+          <div class="soon-badge">Coming Soon</div>
+          <div class="card-icon-wrap">📁</div>
+          <div>
+            <div class="card-title">Folder Slot 9</div>
+            <div class="card-desc">This slot is reserved for your next document folder. Add a link to activate.</div>
+          </div>
+          <div class="card-tag">— Pending</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    DocVault &copy; 2025 &mdash; Secure Document Portal &mdash; Logged in as <strong>admin</strong>
+  </footer>
+
+</div>
+
+<script>
+  // ── LOGIN ──
+  function doLogin(){
+    const id = document.getElementById('uid').value.trim();
+    const pw = document.getElementById('pw').value.trim();
+    const err = document.getElementById('login-err');
+    if(id === 'admin' && pw === 'RASEL'){
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('main').style.display = 'block';
+      startSlider();
+    } else {
+      err.textContent = 'Incorrect ID or password. Please try again.';
+      document.getElementById('pw').value = '';
+      document.getElementById('pw').focus();
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden')){
+      doLogin();
+    }
+  });
+  function doLogout(){
+    document.getElementById('main').style.display = 'none';
+    const ls = document.getElementById('login-screen');
+    ls.classList.remove('hidden');
+    document.getElementById('uid').value = '';
+    document.getElementById('pw').value = '';
+    document.getElementById('login-err').textContent = '';
+    clearInterval(sliderTimer);
+  }
+
+  // ── THEME ──
+  function toggleTheme(){
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
+  }
+
+  // ── SLIDER ──
+  let current = 0;
+  const total = 3;
+  let sliderTimer;
+
+  function goSlide(n){
+    current = (n + total) % total;
+    document.getElementById('slides').style.transform = `translateX(-${current * 100}%)`;
+    document.querySelectorAll('.dot').forEach((d,i)=>{
+      d.classList.toggle('active', i === current);
+    });
+  }
+  function moveSlide(dir){ goSlide(current + dir); resetTimer(); }
+  function resetTimer(){
+    clearInterval(sliderTimer);
+    sliderTimer = setInterval(()=>{ goSlide(current+1); }, 4500);
+  }
+  function startSlider(){ resetTimer(); }
+</script>
+
+</body>
+</html>
